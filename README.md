@@ -87,6 +87,41 @@ curl -X POST http://localhost:8000/predict \
   -d '{"DAYS_BIRTH": -10000, "DAYS_EMPLOYED": -2000, "AMT_INCOME_TOTAL": 50000, "AMT_CREDIT": 200000, "AMT_ANNUITY": 15000}'
 ```
 
+## Docker
+
+### Build de l'image
+
+```bash
+docker build -t credit-scoring-api .
+```
+
+### Lancer le conteneur
+
+```bash
+docker run -p 8000:8000 -e API_KEY=ta-clé-secrète credit-scoring-api
+```
+
+L'API est alors disponible sur [http://localhost:8000](http://localhost:8000).
+
+> **Note** : L'image est basée sur `python:3.11-slim`. `libgomp1` est installé automatiquement (requis par LightGBM).
+
+## CI/CD
+
+Le pipeline GitHub Actions (`.github/workflows/ci-cd.yml`) se déclenche à chaque push ou pull request sur `main` et enchaîne trois jobs :
+
+| Job | Déclencheur | Action |
+|---|---|---|
+| `test` | push + PR | Lance pytest avec seuil de couverture à 70% |
+| `docker-build` | push sur `main` uniquement | Construit l'image Docker |
+| `deploy` | push sur `main` uniquement | Déploie sur Hugging Face Spaces |
+
+### Déploiement sur Hugging Face Spaces
+
+Le job `deploy` pousse le code sur le Space HF via git. Il nécessite le secret `HF_TOKEN` configuré dans les settings du dépôt GitHub.
+
+L'API est accessible publiquement à l'adresse :
+[https://huggingface.co/spaces/rriviere/credit-scoring-api](https://huggingface.co/spaces/rriviere/credit-scoring-api)
+
 ## Tests
 
 Les tests utilisent [pytest](https://pytest.org) et un client de test FastAPI. Le modèle MLflow est mocké — pas besoin qu'il soit chargé en mémoire.
@@ -134,7 +169,7 @@ credit-scoring-mlops-step-2/
 ├── model/ # Artefacts MLflow (modèle versionné)
 ├── .github/
 │   └── workflows/
-│       └── ci.yml  # Pipeline CI/CD (GitHub Actions)
+│       └── ci-cd.yml  # Pipeline CI/CD (GitHub Actions)
 ├── Dockerfile # Conteneurisation de l'API
 ├── requirements.txt
 └── README.md
