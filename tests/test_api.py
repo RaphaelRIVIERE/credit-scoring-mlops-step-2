@@ -1,4 +1,8 @@
+import hashlib
 import pytest
+import app.model as model_state
+import app.routes as routes_module
+from app.main import app
 from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
 
@@ -15,11 +19,6 @@ API_KEY = "test-secret-key"
 
 @pytest.fixture
 def client():
-    import hashlib
-    import app.model as model_state
-    import app.routes as routes_module
-    from app.main import app
-
     mock_model = MagicMock()
     mock_model.predict.return_value = [[0.7, 0.3]]
     model_state.model = mock_model
@@ -87,3 +86,50 @@ def test_predict_missing_field(client):
         headers={"X-API-Key": API_KEY},
     )
     assert response.status_code == 422
+
+
+def test_predict_no_api_key(client):
+    response = client.post("/predict", json=VALID_PAYLOAD)
+    assert response.status_code == 403
+
+
+def test_predict_wrong_api_key(client):
+    response = client.post(
+        "/predict",
+        json=VALID_PAYLOAD,
+        headers={"X-API-Key": "mauvaise-cle"},
+    )
+    assert response.status_code == 403
+
+
+def test_predict_model_not_loaded(client):
+    original = model_state.model
+    model_state.model = None
+    try:
+        response = client.post(
+            "/predict",
+            json=VALID_PAYLOAD,
+            headers={"X-API-Key": API_KEY},
+        )
+        assert response.status_code == 503
+    finally:
+        model_state.model = original
+
+
+def test_predict_rejected(client):
+    mock_model = MagicMock()
+    mock_model.predict.return_value = [[0.3, 0.7]]
+    original = model_state.model
+    model_state.model = mock_model
+    try:
+        response = client.post(
+            "/predict",
+            json=VALID_PAYLOAD,
+            headers={"X-API-Key": API_KEY},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["score"] == pytest.approx(0.7)
+        assert data["decision"] == "rejected"
+    finally:
+        model_state.model = original
