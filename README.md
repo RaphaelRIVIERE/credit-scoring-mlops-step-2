@@ -146,7 +146,6 @@ Lancer un test précis :
 pytest tests/test_api.py::test_predict_valid -v
 ```
 
-
 ## Sécurité
 
 L'endpoint `/predict` est protégé par une clé API. La clé doit être envoyée dans le header HTTP `X-API-Key` à chaque requête.
