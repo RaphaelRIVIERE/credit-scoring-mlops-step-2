@@ -26,4 +26,4 @@ jobs:
         env:
           API_KEY: test-secret-key
           MODEL_PATH: model
-        run: pytest tests/ --cov=app --cov-fail-under=70
+        run: pytest tests/ --cov=app --cov-fail-under=100
