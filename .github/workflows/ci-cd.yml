@@ -55,5 +55,11 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
+          git lfs install
+          git lfs track "*.pkl"
+          git add .gitattributes
+          git config user.email "ci@github.com"
+          git config user.name "GitHub Actions"
+          git commit -m "ci: track binary files with LFS" || true
           git remote add space https://rriviere:$HF_TOKEN@huggingface.co/spaces/rriviere/credit-scoring-api
           git push space main --force
