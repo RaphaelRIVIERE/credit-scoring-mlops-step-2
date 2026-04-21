@@ -1,3 +1,12 @@
+---
+title: Credit Scoring API
+emoji: 💳
+colorFrom: blue
+colorTo: green
+sdk: docker
+pinned: false
+---
+
 # Credit Scoring MLOps — Déploiement & Monitoring
 
 Suite du projet [credit-scoring-mlops](../credit-scoring-mlops), qui portait sur le développement et le versionnage du modèle. Ce projet couvre la mise en production : API, conteneurisation, CI/CD et monitoring.
