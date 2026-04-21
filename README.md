@@ -87,6 +87,23 @@ curl -X POST http://localhost:8000/predict \
   -d '{"DAYS_BIRTH": -10000, "DAYS_EMPLOYED": -2000, "AMT_INCOME_TOTAL": 50000, "AMT_CREDIT": 200000, "AMT_ANNUITY": 15000}'
 ```
 
+## Tests
+
+Les tests utilisent [pytest](https://pytest.org) et un client de test FastAPI. Le modèle MLflow est mocké — pas besoin qu'il soit chargé en mémoire.
+
+Lancer tous les tests :
+
+```bash
+pytest tests/ -v
+```
+
+Lancer un test précis :
+
+```bash
+pytest tests/test_api.py::test_predict_valid -v
+```
+
+
 ## Sécurité
 
 L'endpoint `/predict` est protégé par une clé API. La clé doit être envoyée dans le header HTTP `X-API-Key` à chaque requête.
