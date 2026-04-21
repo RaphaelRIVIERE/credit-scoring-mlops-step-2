@@ -97,6 +97,14 @@ Lancer tous les tests :
 pytest tests/ -v
 ```
 
+Lancer avec le rapport de couverture :
+
+```bash
+pytest tests/ --cov=app --cov-report=term-missing
+```
+
+Le pipeline CI impose un seuil minimum de **70% de couverture** sur le dossier `app/`. En dessous, le build échoue.
+
 Lancer un test précis :
 
 ```bash
