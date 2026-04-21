@@ -15,6 +15,90 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+## Lancer l'API
+
+Copie le fichier `.env.example` et remplis ta clé :
+
+```bash
+cp .env.example .env
+```
+
+Pour générer une clé sécurisée :
+
+```bash
+python -c "import secrets; print(secrets.token_hex(32))"
+```
+
+Lance l'API :
+
+```bash
+uvicorn app.main:app --reload
+```
+
+La doc interactive Swagger est disponible sur [http://localhost:8000/docs](http://localhost:8000/docs).
+
+## Endpoints
+
+### `GET /health`
+
+Vérifie que l'API est opérationnelle. Aucune authentification requise.
+
+```bash
+curl http://localhost:8000/health
+# {"status": "ok"}
+```
+
+### `POST /predict`
+
+Retourne le score de défaut et la décision crédit pour un client.
+
+**Authentification requise** : header `X-API-Key` (voir section Sécurité).
+
+**Corps de la requête** (champs obligatoires) :
+
+| Champ | Type | Description |
+|---|---|---|
+| `DAYS_BIRTH` | float | Jours depuis la naissance (valeur négative) |
+| `DAYS_EMPLOYED` | float | Jours depuis l'embauche (négatif si employé) |
+| `AMT_INCOME_TOTAL` | float | Revenu annuel total (> 0) |
+| `AMT_CREDIT` | float | Montant du crédit demandé (> 0) |
+| `AMT_ANNUITY` | float | Annuité du crédit (> 0) |
+
+De nombreux champs optionnels sont également acceptés (données bureau, historique crédit, etc.). Voir la doc Swagger pour la liste complète.
+
+**Réponse** :
+
+```json
+{
+  "score": 0.23,
+  "decision": "approved"
+}
+```
+
+- `score` : probabilité de défaut entre 0 et 1 (0 = bon payeur, 1 = défaut certain)
+- `decision` : `"approved"` si score < 0.5, `"rejected"` sinon
+
+**Exemple** :
+
+```bash
+curl -X POST http://localhost:8000/predict \
+  -H "X-API-Key: ta-clé-secrète" \
+  -H "Content-Type: application/json" \
+  -d '{"DAYS_BIRTH": -10000, "DAYS_EMPLOYED": -2000, "AMT_INCOME_TOTAL": 50000, "AMT_CREDIT": 200000, "AMT_ANNUITY": 15000}'
+```
+
+## Sécurité
+
+L'endpoint `/predict` est protégé par une clé API. La clé doit être envoyée dans le header HTTP `X-API-Key` à chaque requête.
+
+```
+X-API-Key: ta-clé-secrète
+```
+
+Côté serveur, la clé est hashée en SHA-256 avant comparaison — elle n'est jamais stockée en clair en mémoire. Le fichier `.env` contenant la clé ne doit jamais être commité (il est dans le `.gitignore`).
+
+Toute requête sans clé ou avec une clé incorrecte reçoit une réponse `403 Non autorisé`, sans indication sur la nature de l'erreur.
+
 ## Structure du projet
 
 ```
