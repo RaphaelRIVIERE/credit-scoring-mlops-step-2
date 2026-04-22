@@ -6,7 +6,8 @@ from fastapi import FastAPI, Request
 
 load_dotenv()
 from app import model as model_state
-from app.logger import init_db, log_request
+from app.database import init_db
+from app.logger import log_request
 from app.routes import router
 
 MODEL_PATH = os.getenv("MODEL_PATH", "model")
