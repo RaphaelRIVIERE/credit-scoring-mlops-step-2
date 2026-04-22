@@ -5,6 +5,8 @@ import app.routes as routes_module
 from app.main import app
 from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from app.models import Base
 
 VALID_PAYLOAD = {
     "DAYS_BIRTH": -10000,
@@ -25,11 +27,17 @@ def client():
     def fake_load(_):
         model_state.model = mock_model
 
+    test_engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(test_engine)
+
     api_key_hash = hashlib.sha256(API_KEY.encode()).hexdigest()
     with patch.object(model_state, "load", fake_load):
         with patch.object(routes_module, "_API_KEY_HASH", api_key_hash):
-            with TestClient(app) as c:
-                yield c
+            with patch("app.logger.get_engine", return_value=test_engine):
+                with TestClient(app) as c:
+                    yield c
+
+    Base.metadata.drop_all(test_engine)
 
 
 def test_predict_valid(client):
