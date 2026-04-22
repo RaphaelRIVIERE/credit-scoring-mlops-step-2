@@ -99,21 +99,64 @@ curl -X POST http://localhost:8000/predict \
 
 ## Docker
 
-### Build de l'image
+Image seule :
 
 ```bash
 docker build -t credit-scoring-api .
-```
-
-### Lancer le conteneur
-
-```bash
 docker run -p 8000:8000 -e API_KEY=ta-clé-secrète credit-scoring-api
 ```
 
-L'API est alors disponible sur [http://localhost:8000](http://localhost:8000).
+Avec Postgres (recommandé) :
 
-> **Note** : L'image est basée sur `python:3.11-slim`. `libgomp1` est installé automatiquement (requis par LightGBM).
+```bash
+cp .env.example .env  # remplir API_KEY et DATABASE_URL
+docker-compose up --build
+```
+
+L'API est disponible sur [http://localhost:8000](http://localhost:8000), Postgres sur le port `5432`.
+
+## Stockage des données de production
+
+Chaque appel à `/predict` est automatiquement enregistré dans une base **PostgreSQL** via SQLAlchemy. Deux tables sont créées au démarrage :
+
+- `predictions` : stocke les features du client, le score, la décision et le temps d'inférence. Les champs optionnels sont `NULL` si non fournis.
+- `logs` : trace chaque requête HTTP (endpoint, méthode, status code, temps de réponse) avec une FK vers `predictions`.
+
+Le schéma complet est défini dans [app/models.py](app/models.py).
+
+### Configuration
+
+La variable d'environnement `DATABASE_URL` contrôle la connexion :
+
+```
+DATABASE_URL=postgresql://user:password@host/predictions_db
+```
+
+Les tables sont créées automatiquement au démarrage de l'API (`init_db()`).
+
+## Simulation de production
+
+Le script `scripts/simulate_production.py` envoie N requêtes synthétiques à l'API pour peupler la base de données — utile pour tester le monitoring sans trafic réel.
+
+```bash
+# 100 requêtes avec distributions normales
+python scripts/simulate_production.py
+
+# 300 requêtes avec drift activé (distributions décalées)
+python scripts/simulate_production.py --n 300 --drift
+
+# Cibler un environnement distant
+python scripts/simulate_production.py --n 200 --drift \
+  --api-url https://mon-api.hf.space \
+  --api-key ma-clé-secrète
+```
+
+| Option | Défaut | Description |
+|---|---|---|
+| `--n` | 100 | Nombre de requêtes |
+| `--drift` | off | Décale les distributions (âge, revenu, EXT_SOURCE) pour simuler un data drift |
+| `--api-url` | localhost:8000 | URL cible |
+| `--api-key` | `$API_KEY` du `.env` | Clé API |
 
 ## CI/CD
 
@@ -172,13 +215,26 @@ Toute requête sans clé ou avec une clé incorrecte reçoit une réponse `403 N
 
 ```
 credit-scoring-mlops-step-2/
-├── app/ # Code source de l'API
-├── src/ # Modules métier (preprocessing, utils…)
-├── tests/ # Tests unitaires et d'intégration
-├── model/ # Artefacts MLflow (modèle versionné)
+├── app/  # Code source de l'API
+│   ├── main.py             # Point d'entrée FastAPI + middleware logging
+│   ├── routes.py           # Endpoint /predict
+│   ├── schemas.py          # Modèles Pydantic (ClientFeatures, PredictionResponse)
+│   ├── models.py           # Modèles SQLAlchemy (Prediction, Log)
+│   ├── logger.py           # Fonctions log_prediction() et log_request()
+│   └── database.py         # Connexion et initialisation Postgres
+├── src/ # Modules métier
+│   └── preprocessing.py    # Feature engineering
+├── scripts/
+│   └── simulate_production.py  # Simulation de trafic avec drift optionnel
+├── tests/  # Tests unitaires et d'intégration
+├── data/
+│   └── reference/   # Données de référence pour l'analyse de drift
+│       └── train_sample.csv  # À placer manuellement (non versionné)
+├── model/                  # Artefacts MLflow (modèle versionné)
 ├── .github/
 │   └── workflows/
 │       └── ci-cd.yml  # Pipeline CI/CD (GitHub Actions)
+├── docker-compose.yml # API + Postgres en local
 ├── Dockerfile # Conteneurisation de l'API
 ├── requirements.txt
 └── README.md

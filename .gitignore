@@ -4,6 +4,8 @@ __pycache__/
 *.pyo
 .venv/
 venv/
+.coverage
+htmlcov/
 
 # Env
 .env
@@ -14,3 +16,6 @@ venv/
 # MLflow
 mlflow.db
 mlruns/
+
+# Data (fichiers volumineux, non versionnés)
+data/
