@@ -2,6 +2,8 @@
 fastapi
 uvicorn[standard]
 python-dotenv
+psycopg2-binary
+sqlalchemy
 
 # Modèle
 mlflow==3.10.1
