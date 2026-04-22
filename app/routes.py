@@ -2,7 +2,7 @@ import hashlib
 import os
 import time
 import pandas as pd
-from fastapi import APIRouter, HTTPException, Security
+from fastapi import APIRouter, HTTPException, Request, Security
 from fastapi.security import APIKeyHeader
 from app.schemas import ClientFeatures, PredictionResponse
 from app import model as model_state
@@ -27,7 +27,7 @@ def health():
 
 
 @router.post("/predict", response_model=PredictionResponse)
-def predict(features: ClientFeatures, _: None = Security(_verify_api_key)):
+def predict(request: Request, features: ClientFeatures, _: None = Security(_verify_api_key)):
     if model_state.model is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
 
@@ -37,5 +37,5 @@ def predict(features: ClientFeatures, _: None = Security(_verify_api_key)):
     score = float(model_state.model.predict(data)[0][1])
     inference_time_ms = (time.perf_counter() - t0) * 1000
     decision = "rejected" if score >= THRESHOLD else "approved"
-    log_prediction(features, score, decision, inference_time_ms)
+    request.state.prediction_id = log_prediction(features, score, decision, inference_time_ms)
     return PredictionResponse(score=score, decision=decision)
