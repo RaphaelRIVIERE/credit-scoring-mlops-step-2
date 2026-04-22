@@ -1,11 +1,25 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy.orm import DeclarativeBase, relationship
 
 
 class Base(DeclarativeBase):
     pass
+
+
+class Log(Base):
+    __tablename__ = "logs"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    timestamp = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    endpoint = Column(String, nullable=False)
+    method = Column(String, nullable=False)
+    status_code = Column(Integer, nullable=False)
+    response_time_ms = Column(Float, nullable=False)
+    error = Column(String)
+    prediction_id = Column(Integer, ForeignKey("predictions.id"), nullable=True)
+    prediction = relationship("Prediction", back_populates="log")
 
 
 class Prediction(Base):
@@ -13,6 +27,7 @@ class Prediction(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     timestamp = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    log = relationship("Log", back_populates="prediction", uselist=False)
 
     # Prédiction
     score = Column(Float, nullable=False)
