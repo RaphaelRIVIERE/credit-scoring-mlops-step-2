@@ -17,3 +17,8 @@ pandas==2.3.3
 pytest
 pytest-cov
 httpx
+
+# Monitoring
+evidently==0.7.21
+jupyter
+nbconvert

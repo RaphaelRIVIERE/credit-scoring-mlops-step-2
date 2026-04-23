@@ -19,3 +19,6 @@ mlruns/
 
 # Data (fichiers volumineux, non versionnés)
 data/
+
+# Rapports générés (reproductibles via le notebook)
+monitoring/reports/
